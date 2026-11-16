@@ -293,6 +293,13 @@
       </div>
       <canvas id="view" hidden></canvas>
       <div class="busy" id="busy" hidden>working…</div>
+      <div class="zoombar" id="zoombar" hidden>
+        <button class="btn" id="zoomOut" title="Zoom out (−)" aria-label="Zoom out">−</button>
+        <span id="zoomLabel" class="zoom-label">Fit</span>
+        <button class="btn" id="zoomIn" title="Zoom in (+)" aria-label="Zoom in">+</button>
+        <button class="btn" id="zoomFit" title="Fit to window (0)">Fit</button>
+        <button class="btn" id="zoom100" title="Actual pixels (1)">100%</button>
+      </div>
     </main>
   </div>
   <script type="module" src="src/app.js"></script>

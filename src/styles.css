@@ -145,8 +145,24 @@ input[type=color] { width: 32px; height: 24px; border: 1px solid var(--line); ba
 }
 .empty strong { color: var(--text); font-size: 18px; }
 
+/* ---------- zoom ---------- */
+.stage.zoomed { overflow: auto; place-items: start; }
+.stage.zoomed #view { max-width: none; max-height: none; margin: auto; cursor: grab; }
+.stage.zoomed.panning #view { cursor: grabbing; }
+.stage.pixels #view { image-rendering: pixelated; }
+
+.zoombar {
+  position: fixed; right: 16px; bottom: 16px; z-index: 5;
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(20,20,20,0.92); border: 1px solid var(--line);
+  padding: 4px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+.zoombar .btn { padding: 5px 10px; min-width: 32px; }
+.zoom-label { min-width: 48px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stage.gen-mode .zoombar { display: none; }
+
 .busy {
-  position: absolute; top: 14px; right: 16px;
+  position: fixed; top: 14px; right: 16px; z-index: 5;
   background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 99px; color: var(--muted); font-size: 12px;
 }
 

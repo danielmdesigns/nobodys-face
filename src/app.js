@@ -71,6 +71,8 @@ async function loadFile(file) {
   switchTab("copier");
   $("empty").hidden = true;
   view.hidden = false;
+  $("zoombar").hidden = false;
+  zoom = null; // new image starts fitted
   document.querySelector(".panel").classList.remove("no-image");
   setStatus("");
   rebuildGray();
@@ -96,8 +98,105 @@ function rebuildGray() {
   }
   view.width = gw;
   view.height = gh;
+  applyZoom();
   schedule();
 }
+
+// ---------- zoom ----------
+// zoom = null means "fit to window"; otherwise screen pixels per image pixel.
+
+let zoom = null;
+const ZOOM_STEPS = [0.1, 0.15, 0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.5, 2, 3, 4, 6, 8];
+const stageEl = $("stage");
+
+function fitScale() {
+  const pad = 56;
+  return Math.min((stageEl.clientWidth - pad) / gw, (stageEl.clientHeight - pad) / gh, 1);
+}
+
+function currentScale() {
+  return zoom ?? fitScale();
+}
+
+function applyZoom(anchor) {
+  if (!gw) return;
+  const before = anchor ? view.getBoundingClientRect() : null;
+  if (zoom === null) {
+    stageEl.classList.remove("zoomed", "pixels");
+    view.style.width = view.style.height = "";
+  } else {
+    stageEl.classList.add("zoomed");
+    stageEl.classList.toggle("pixels", zoom >= 2);
+    view.style.width = `${Math.round(gw * zoom)}px`;
+    view.style.height = `${Math.round(gh * zoom)}px`;
+  }
+  $("zoomLabel").textContent = zoom === null ? `Fit` : `${Math.round(zoom * 100)}%`;
+  // Keep the point under the cursor (or the center) in place
+  if (before && zoom !== null) {
+    const fx = (anchor.x - before.left) / before.width;
+    const fy = (anchor.y - before.top) / before.height;
+    const after = view.getBoundingClientRect();
+    stageEl.scrollLeft += after.left + fx * after.width - anchor.x;
+    stageEl.scrollTop += after.top + fy * after.height - anchor.y;
+  }
+}
+
+function centerPoint() {
+  const r = stageEl.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+function setZoom(z, anchor = centerPoint()) {
+  zoom = z === null ? null : Math.min(8, Math.max(0.1, z));
+  applyZoom(anchor);
+}
+
+function stepZoom(dir, anchor) {
+  const cur = currentScale();
+  const next = dir > 0
+    ? ZOOM_STEPS.find((z) => z > cur + 0.001) ?? 8
+    : [...ZOOM_STEPS].reverse().find((z) => z < cur - 0.001) ?? 0.1;
+  setZoom(next, anchor);
+}
+
+$("zoomIn").addEventListener("click", () => stepZoom(1));
+$("zoomOut").addEventListener("click", () => stepZoom(-1));
+$("zoomFit").addEventListener("click", () => setZoom(null));
+$("zoom100").addEventListener("click", () => setZoom(1));
+
+// Pinch on a trackpad, or ⌘/Ctrl + scroll, zooms toward the cursor
+stageEl.addEventListener("wheel", (e) => {
+  if (!(e.ctrlKey || e.metaKey) || !source || stageEl.classList.contains("gen-mode")) return;
+  e.preventDefault();
+  setZoom(currentScale() * Math.exp(-e.deltaY * 0.01), { x: e.clientX, y: e.clientY });
+}, { passive: false });
+
+// Drag the image to move around when zoomed in
+let pan = null;
+view.addEventListener("pointerdown", (e) => {
+  if (zoom === null) return;
+  pan = { x: e.clientX, y: e.clientY, sl: stageEl.scrollLeft, st: stageEl.scrollTop };
+  view.setPointerCapture(e.pointerId);
+  stageEl.classList.add("panning");
+});
+view.addEventListener("pointermove", (e) => {
+  if (!pan) return;
+  stageEl.scrollLeft = pan.sl - (e.clientX - pan.x);
+  stageEl.scrollTop = pan.st - (e.clientY - pan.y);
+});
+const endPan = () => { pan = null; stageEl.classList.remove("panning"); };
+view.addEventListener("pointerup", endPan);
+view.addEventListener("pointercancel", endPan);
+
+// Keys: + / − zoom, 0 fits, 1 is actual pixels
+window.addEventListener("keydown", (e) => {
+  if (!source || $("copierPanel").hidden || e.metaKey || e.ctrlKey ||
+      ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
+  if (e.key === "+" || e.key === "=") stepZoom(1);
+  else if (e.key === "-" || e.key === "_") stepZoom(-1);
+  else if (e.key === "0") setZoom(null);
+  else if (e.key === "1") setZoom(1);
+});
 
 // ---------- processing ----------
 
