@@ -185,6 +185,26 @@ input[type=color] { width: 32px; height: 24px; border: 1px solid var(--line); ba
 }
 .seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
 
+.seg.seg2 { grid-template-columns: 1fr 1fr; }
+
+.refdrop {
+  border: 2px dashed #3a3a3a; border-radius: var(--radius); padding: 16px 12px;
+  display: grid; gap: 4px; text-align: center; color: var(--muted); cursor: pointer; font-size: 12px;
+}
+.refdrop strong { color: var(--text); font-size: 13px; }
+.refdrop:hover, .refdrop.over { border-color: var(--accent); }
+.refdrop.has-refs { padding: 10px; }
+.refthumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.refthumbs:empty { display: none; }
+.refthumb { position: relative; aspect-ratio: 1; border-radius: var(--radius); overflow: hidden; background: #222; }
+.refthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.refthumb button {
+  position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 0; background: rgba(0,0,0,0.75); color: #fff; cursor: pointer; font-size: 14px; line-height: 1;
+}
+.stack { display: grid; gap: 4px; margin: 10px 0 8px; }
+.stack span { color: var(--text); }
+
 .ctl.select select { width: 100%; }
 #genPanel .ctl.select { grid-template-columns: 92px 1fr; margin-top: 0; }
 

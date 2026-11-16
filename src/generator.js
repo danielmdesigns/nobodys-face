@@ -10,7 +10,10 @@ const DEFAULTS = {
   skullParts: "full", skullBone: "clean", skullCracks: "none", skullTeeth: "all",
   light: "above", background: "light", photo: "bw", notes: "",
   n: "1", quality: "low", model: "gpt-image-2.6-flare",
+  mode: "settings", refWhat: "", refShape: "match",
 };
+
+let refs = []; // reference photos for "From a reference": [{ dataUrl, w, h }]
 
 let s = { ...DEFAULTS, ...load() };
 let busy = false;
@@ -162,6 +165,101 @@ export function buildPrompt(o = s) {
   return parts.join(" ");
 }
 
+// ---------- reference mode ----------
+
+const REF_BACKGROUND = {
+  light: "Plain, light, out-of-focus surroundings with nothing recognizable in them.",
+  dark: "Plain, dark, out-of-focus surroundings with nothing recognizable in them, the subject's edges catching the light.",
+};
+
+export function buildReferencePrompt(o = s) {
+  const photo = o.photo === "bw" ? "black-and-white photograph" : "color photograph";
+  const what = o.refWhat.trim() || "the subject described by the current settings";
+  return [
+    `Create a brand-new, original ${photo}.`,
+    `Use the attached reference image${refs.length === 1 ? "" : "s"} ONLY as a guide for the camera position, camera height and distance,`,
+    `lens perspective, the subject's pose and body position, and the framing.`,
+    `Do not copy the person, face, body details, clothing, tattoos, jewelry, text, logos, background or any other`,
+    `specific content from the reference, and do not trace it.`,
+    `\n\nWhat is in the new photograph: ${what}.`,
+    `\n\nStyle: lit by ${LIGHT[o.light]}. Strong chiaroscuro: deep black shadows and bright, clean highlights that`,
+    `define the shapes. Very high contrast with few mid-tones, so the image still reads clearly when reduced to pure`,
+    `black and white on a photocopier. ${REF_BACKGROUND[o.background]}`,
+    `Sharp focus, real photographic texture. No text, no logos, no frame.`,
+    `IMPORTANT: do not crop or cut off the hair or the top of the head. Every strand of hair must be fully inside`,
+    `the frame. Any person shown is anonymous, not a real or famous individual.`,
+  ].join(" ").replace(/ \n\n/g, "\n\n");
+}
+
+function refSize(o) {
+  const shapes = { square: "1024x1024", tall: "1024x1536", wide: "1536x1024" };
+  if (o.refShape !== "match") return shapes[o.refShape];
+  if (!refs.length) return "1024x1024";
+  const ratio = refs[0].w / refs[0].h;
+  return ratio > 1.2 ? shapes.wide : ratio < 0.83 ? shapes.tall : shapes.square;
+}
+
+const currentPrompt = () => (s.mode === "reference" ? buildReferencePrompt() : buildPrompt());
+const currentSize = () => (s.mode === "reference" ? refSize(s) : sizeFor(s));
+
+// Shrink reference photos before sending: plenty for pose, much faster to upload
+function readRef(file) {
+  return new Promise((resolve, reject) => {
+    createImageBitmap(file).then((bmp) => {
+      const f = Math.min(1, 1536 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(bmp.width * f);
+      c.height = Math.round(bmp.height * f);
+      c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+      resolve({ dataUrl: c.toDataURL("image/jpeg", 0.9), w: c.width, h: c.height });
+    }, reject);
+  });
+}
+
+async function addRefs(files) {
+  const imgs = [...files].filter((f) => f.type.startsWith("image/"));
+  for (const f of imgs) {
+    if (refs.length >= 3) { $("genStatus").textContent = "Up to 3 reference photos."; break; }
+    try { refs.push(await readRef(f)); } catch { $("genStatus").textContent = "Couldn't read one of those images."; }
+  }
+  renderRefs();
+  sync();
+}
+
+function renderRefs() {
+  $("refThumbs").replaceChildren(...refs.map((r, i) => {
+    const d = document.createElement("div");
+    d.className = "refthumb";
+    const img = document.createElement("img");
+    img.src = r.dataUrl;
+    img.alt = `Reference ${i + 1}`;
+    const x = document.createElement("button");
+    x.textContent = "×";
+    x.title = "Remove";
+    x.setAttribute("aria-label", `Remove reference ${i + 1}`);
+    x.addEventListener("click", () => { refs.splice(i, 1); renderRefs(); sync(); });
+    d.append(img, x);
+    return d;
+  }));
+  $("refDrop").classList.toggle("has-refs", refs.length > 0);
+}
+
+function wireRefs() {
+  const drop = $("refDrop");
+  drop.addEventListener("click", () => $("refInput").click());
+  drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("refInput").click(); } });
+  $("refInput").addEventListener("change", (e) => { addRefs(e.target.files); e.target.value = ""; });
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  // Stop the drop here so it doesn't also open in the copier
+  drop.addEventListener("drop", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    drop.classList.remove("over");
+    document.getElementById("stage").classList.remove("dragging");
+    addRefs(e.dataTransfer.files);
+  });
+}
+
 function cap(t) { return t ? t[0].toUpperCase() + t.slice(1) : t; }
 
 function hasHair(o) {
@@ -195,9 +293,12 @@ function sync() {
     }
   }
   const human = s.subject !== "skull";
-  for (const el of document.querySelectorAll('[data-only="human"]')) el.hidden = !human;
-  for (const el of document.querySelectorAll('[data-only="skull"]')) el.hidden = human;
-  $("promptPreview").textContent = buildPrompt();
+  for (const el of document.querySelectorAll("#genPanel [data-mode], #genPanel [data-only]")) {
+    const modeOk = !el.dataset.mode || el.dataset.mode === s.mode;
+    const subjectOk = !el.dataset.only || (el.dataset.only === "human") === human;
+    el.hidden = !(modeOk && subjectOk);
+  }
+  $("promptPreview").textContent = currentPrompt();
 }
 
 function wire() {
@@ -277,6 +378,12 @@ async function generate(onUse) {
   btn.disabled = true;
   btn.textContent = "Generating…";
   const n = Number(s.n);
+  const fromRef = s.mode === "reference";
+  if (fromRef && !refs.length) {
+    $("genStatus").textContent = "Add a reference photo first.";
+    busy = false; btn.disabled = false; btn.textContent = "Generate";
+    return;
+  }
   $("genStatus").textContent = `Making ${n} image${n > 1 ? "s" : ""}. This usually takes 20–60 seconds.`;
   const results = $("results");
   results.replaceChildren(...Array.from({ length: n }, () => {
@@ -285,12 +392,13 @@ async function generate(onUse) {
     return p;
   }));
   try {
-    const r = await fetch("/api/generate", {
+    const r = await fetch(fromRef ? "/api/reference" : "/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        prompt: buildPrompt(), model: s.model, quality: s.quality, n,
-        size: sizeFor(s), label: label(s), settings: s,
+        prompt: currentPrompt(), model: s.model, quality: s.quality, n,
+        size: currentSize(), label: fromRef ? "reference" : label(s), settings: s,
+        images: fromRef ? refs.map((r) => r.dataUrl) : undefined,
       }),
     });
     const data = await r.json();
@@ -310,15 +418,18 @@ async function generate(onUse) {
 
 // For making images inside ChatGPT (covered by a Plus plan) instead of the paid API
 async function copyPrompt() {
-  const shape = { "1024x1536": "tall portrait (2:3)", "1024x1024": "square", "1536x1024": "wide landscape (3:2)" }[sizeFor(s)];
+  const shape = { "1024x1536": "tall portrait (2:3)", "1024x1024": "square", "1536x1024": "wide landscape (3:2)" }[currentSize()];
+  const fromRef = s.mode === "reference";
   const n = Number(s.n);
   const text =
     `Generate ${n === 1 ? "an image" : `${n} separate image variations`}, ${shape}. ` +
-    `Photorealistic, no illustration or drawing style.\n\n${buildPrompt()}`;
+    `Photorealistic, no illustration or drawing style.\n\n${currentPrompt()}`;
   try {
     await navigator.clipboard.writeText(text);
     $("genStatus").textContent =
-      "Copied. Paste it into ChatGPT, download the image, then drag it onto this page — it opens in the Copier.";
+      fromRef
+        ? "Copied. In ChatGPT, attach your reference photo(s), paste the prompt, then drag the result onto this page."
+        : "Copied. Paste it into ChatGPT, download the image, then drag it onto this page — it opens in the Copier.";
   } catch {
     $("genStatus").textContent = "Couldn't copy automatically. Open “See the prompt” below and copy it from there.";
   }
@@ -339,6 +450,7 @@ export function initGenerator({ onUse }) {
     t.addEventListener("click", () => switchTab(t.dataset.tab));
   }
   wire();
+  wireRefs();
   sync();
   $("genBtn").addEventListener("click", () => generate(use));
   $("copyPromptBtn").addEventListener("click", copyPrompt);

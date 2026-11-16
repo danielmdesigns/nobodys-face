@@ -12,7 +12,7 @@ degradation, ink spread, dust. Exports a vector SVG or a transparent PNG.
 Makes photos of faces and skulls lit hard for the copier, using OpenAI's image
 API (pay-as-you-go, separate from a ChatGPT subscription). Pick subject, pose,
 expression, hair, skull parts, light and background, then send any result to the
-copier. Every image is saved in `generated/` (not uploaded to GitHub) with the
+copier. A "From a reference" mode takes up to 3 photos as a guide for pose and camera angle only, and makes a new image in the same style. Every image is saved in `generated/` (not uploaded to GitHub) with the
 settings used.
 
 Setup: put your OpenAI API key in `.env` (copy `.env.example`). It never leaves

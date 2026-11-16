@@ -15,6 +15,8 @@ import re
 import time
 import urllib.error
 import urllib.request
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -22,6 +24,9 @@ ROOT = Path(__file__).resolve().parent
 GEN_DIR = ROOT / "generated"
 PORT = int(os.environ.get("PORT", "5173"))
 OPENAI_URL = "https://api.openai.com/v1/images/generations"
+OPENAI_EDIT_URL = "https://api.openai.com/v1/images/edits"
+MAX_REFS = 3
+MAX_BODY = 40 * 1024 * 1024
 
 ALLOWED_MODELS = {"gpt-image-2.6-flare", "gpt-image-2.6-sunburst"}
 ALLOWED_SIZES = {"1024x1024", "1024x1536", "1536x1024"}
@@ -93,7 +98,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
-        if self.path != "/api/generate":
+        if self.path not in ("/api/generate", "/api/reference"):
             self.send_error(404)
             return
         # Only accept requests from this page, not from other websites
@@ -103,68 +108,133 @@ class Handler(SimpleHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
+            if length > MAX_BODY:
+                self.send_json(413, {"error": "Reference images are too big."})
+                return
             req = json.loads(self.rfile.read(length) or b"{}")
         except (ValueError, json.JSONDecodeError):
             self.send_json(400, {"error": "Bad request."})
             return
-        self.generate(req)
 
-    def generate(self, req):
         key = read_key()
         if not key_looks_set(key):
             self.send_json(400, {"error": "No OpenAI key yet. Add it to the .env file in the nobodys-face folder."})
             return
-
-        prompt = str(req.get("prompt", "")).strip()[:4000]
-        model = req.get("model") if req.get("model") in ALLOWED_MODELS else "gpt-image-2.6-flare"
-        size = req.get("size") if req.get("size") in ALLOWED_SIZES else "1024x1536"
-        quality = req.get("quality") if req.get("quality") in ALLOWED_QUALITY else "medium"
-        n = max(1, min(4, int(req.get("n", 1))))
-        if not prompt:
+        opts = clean_options(req)
+        if not opts["prompt"]:
             self.send_json(400, {"error": "Empty prompt."})
             return
 
-        body = json.dumps({
-            "model": model, "prompt": prompt, "size": size,
-            "quality": quality, "n": n, "output_format": "png",
-        }).encode()
-        api_req = urllib.request.Request(
-            OPENAI_URL, data=body, method="POST",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        )
         try:
-            with urllib.request.urlopen(api_req, timeout=300) as resp:
-                data = json.loads(resp.read())
-        except urllib.error.HTTPError as e:
-            try:
-                msg = json.loads(e.read()).get("error", {}).get("message", "")
-            except Exception:
-                msg = ""
-            self.send_json(e.code, {"error": f"OpenAI said: {msg or e.reason}"})
-            return
-        except urllib.error.URLError as e:
-            self.send_json(502, {"error": f"Couldn't reach OpenAI: {e.reason}"})
+            if self.path == "/api/generate":
+                images = generate(key, opts)
+            else:
+                refs = decode_refs(req.get("images", []))
+                if not refs:
+                    self.send_json(400, {"error": "Add at least one reference image."})
+                    return
+                images = from_reference(key, opts, refs)
+        except OpenAIError as e:
+            self.send_json(e.status, {"error": str(e)})
             return
 
-        GEN_DIR.mkdir(exist_ok=True)
-        stamp = time.strftime("%Y%m%d-%H%M%S")
-        label = re.sub(r"[^a-z0-9]+", "-", str(req.get("label", "subject")).lower()).strip("-")[:40] or "subject"
-        saved = []
-        for i, item in enumerate(data.get("data", [])):
-            b64 = item.get("b64_json")
-            if not b64:
-                continue
-            name = f"{stamp}-{label}-{i + 1}.png"
-            (GEN_DIR / name).write_bytes(base64.b64decode(b64))
-            meta = {"prompt": prompt, "model": model, "size": size, "quality": quality,
-                    "settings": req.get("settings", {}), "created": stamp}
-            (GEN_DIR / f"{name}.json").write_text(json.dumps(meta, indent=2))
-            saved.append({"url": f"/generated/{name}", "name": name})
-
-        if not saved:
+        if not images:
             self.send_json(502, {"error": "OpenAI returned no images."})
             return
-        self.send_json(200, {"images": saved})
+        self.send_json(200, {"images": save_images(images, req, opts)})
+
+
+class OpenAIError(Exception):
+    def __init__(self, status, message):
+        super().__init__(message)
+        self.status = status
+
+
+def clean_options(req):
+    return {
+        "prompt": str(req.get("prompt", "")).strip()[:6000],
+        "model": req.get("model") if req.get("model") in ALLOWED_MODELS else "gpt-image-2.6-flare",
+        "size": req.get("size") if req.get("size") in ALLOWED_SIZES else "1024x1536",
+        "quality": req.get("quality") if req.get("quality") in ALLOWED_QUALITY else "medium",
+        "n": max(1, min(4, int(req.get("n", 1)))),
+    }
+
+
+def call_openai(key, url, body, content_type):
+    api_req = urllib.request.Request(
+        url, data=body, method="POST",
+        headers={"Authorization": f"Bearer {key}", "Content-Type": content_type},
+    )
+    try:
+        with urllib.request.urlopen(api_req, timeout=300) as resp:
+            data = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        try:
+            msg = json.loads(e.read()).get("error", {}).get("message", "")
+        except Exception:
+            msg = ""
+        raise OpenAIError(e.code, f"OpenAI said: {msg or e.reason}")
+    except urllib.error.URLError as e:
+        raise OpenAIError(502, f"Couldn't reach OpenAI: {e.reason}")
+    return [base64.b64decode(d["b64_json"]) for d in data.get("data", []) if d.get("b64_json")]
+
+
+def generate(key, o):
+    body = json.dumps({
+        "model": o["model"], "prompt": o["prompt"], "size": o["size"],
+        "quality": o["quality"], "n": o["n"], "output_format": "png",
+    }).encode()
+    return call_openai(key, OPENAI_URL, body, "application/json")
+
+
+def decode_refs(items):
+    """Reference photos arrive from the browser as data: URLs."""
+    refs = []
+    for i, item in enumerate(items[:MAX_REFS]):
+        m = re.match(r"^data:(image/(png|jpeg|webp));base64,(.+)$", str(item), re.S)
+        if not m:
+            continue
+        ext = "jpg" if m.group(2) == "jpeg" else m.group(2)
+        refs.append((f"reference-{i + 1}.{ext}", m.group(1), base64.b64decode(m.group(3))))
+    return refs
+
+
+def from_reference(key, o, refs):
+    """One request per image, run side by side, so 'how many' always works."""
+    fields = {"model": o["model"], "prompt": o["prompt"], "size": o["size"],
+              "quality": o["quality"], "output_format": "png"}
+    body, ctype = multipart(fields, refs)
+    with ThreadPoolExecutor(max_workers=o["n"]) as pool:
+        results = list(pool.map(lambda _: call_openai(key, OPENAI_EDIT_URL, body, ctype), range(o["n"])))
+    return [img for r in results for img in r]
+
+
+def multipart(fields, files):
+    boundary = uuid.uuid4().hex
+    out = bytearray()
+    for name, value in fields.items():
+        out += f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode()
+    for filename, mime, data in files:
+        out += (f'--{boundary}\r\nContent-Disposition: form-data; name="image[]"; filename="{filename}"\r\n'
+                f"Content-Type: {mime}\r\n\r\n").encode()
+        out += data + b"\r\n"
+    out += f"--{boundary}--\r\n".encode()
+    return bytes(out), f"multipart/form-data; boundary={boundary}"
+
+
+def save_images(images, req, o):
+    GEN_DIR.mkdir(exist_ok=True)
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    label = re.sub(r"[^a-z0-9]+", "-", str(req.get("label", "subject")).lower()).strip("-")[:40] or "subject"
+    saved = []
+    for i, png in enumerate(images):
+        name = f"{stamp}-{label}-{i + 1}.png"
+        (GEN_DIR / name).write_bytes(png)
+        meta = {"prompt": o["prompt"], "model": o["model"], "size": o["size"], "quality": o["quality"],
+                "references": len(req.get("images", [])), "settings": req.get("settings", {}), "created": stamp}
+        (GEN_DIR / f"{name}.json").write_text(json.dumps(meta, indent=2))
+        saved.append({"url": f"/generated/{name}", "name": name})
+    return saved
 
 
 def history():

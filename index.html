@@ -28,6 +28,32 @@
         </div>
 
         <section class="group">
+          <div class="seg seg2" data-key="mode">
+            <button data-v="settings">From settings</button>
+            <button data-v="reference">From a reference</button>
+          </div>
+        </section>
+
+        <section class="group" data-mode="reference">
+          <h2>Reference photos</h2>
+          <div class="refdrop" id="refDrop" tabindex="0" role="button" aria-label="Add reference photos">
+            <strong>Drop up to 3 photos here</strong>
+            <span>Used only for the pose, camera angle and framing. Or click to choose.</span>
+          </div>
+          <input id="refInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+          <div class="refthumbs" id="refThumbs"></div>
+          <label class="stack"><span>What's in the shot</span>
+            <textarea data-key="refWhat" rows="4" placeholder="e.g. half woman, half skull, skeleton body, long wet hair hanging down"></textarea></label>
+          <label class="ctl select"><span>Shape</span>
+            <select data-key="refShape">
+              <option value="match">Match the reference</option>
+              <option value="square">Square</option>
+              <option value="tall">Tall</option>
+              <option value="wide">Wide</option>
+            </select></label>
+        </section>
+
+        <section class="group" data-mode="settings">
           <h2>Subject</h2>
           <div class="seg" data-key="subject">
             <button data-v="woman">Woman</button>
@@ -36,7 +62,7 @@
           </div>
         </section>
 
-        <section class="group">
+        <section class="group" data-mode="settings">
           <h2>Pose</h2>
           <label class="ctl select"><span>Facing</span>
             <select data-key="angle">
@@ -61,7 +87,7 @@
             </select></label>
         </section>
 
-        <section class="group" data-only="human">
+        <section class="group" data-mode="settings" data-only="human">
           <h2>Person</h2>
           <label class="ctl select"><span>Expression</span>
             <select data-key="expression">
@@ -87,7 +113,7 @@
             </select></label>
         </section>
 
-        <section class="group" data-only="skull">
+        <section class="group" data-mode="settings" data-only="skull">
           <h2>Skull</h2>
           <label class="ctl select"><span>Parts</span>
             <select data-key="skullParts">
@@ -116,7 +142,7 @@
             </select></label>
         </section>
 
-        <section class="group">
+        <section class="group" data-mode="settings">
           <h2>Hair</h2>
           <label class="ctl select"><span>Hair</span>
             <select data-key="hair">
@@ -160,7 +186,7 @@
             </select></label>
         </section>
 
-        <section class="group">
+        <section class="group" data-mode="settings">
           <h2>Extra details</h2>
           <textarea data-key="notes" rows="2" placeholder="Optional, e.g. freckles, a scar on the cheek, bruised"></textarea>
         </section>
