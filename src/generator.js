@@ -57,7 +57,7 @@ const EYES = {
   closed: "eyes closed",
   up: "eyes rolled upward",
 };
-const AGE = { "20s": "in their twenties", "30s": "in their thirties", "40s": "in their forties", old: "in their late sixties, with lined skin" };
+const AGE = { "20s": "in POSS twenties", "30s": "in POSS thirties", "40s": "in POSS forties", old: "in POSS late sixties, with lined skin" };
 const HAIR = {
   shaved: "a shaved head",
   cropped: "very short cropped hair",
@@ -102,7 +102,7 @@ export function buildPrompt(o = s) {
     const who = o.subject === "woman" ? "a woman" : "a man";
     const hair = [HAIR[o.hair], HAIR_MOTION[o.hairMotion]].filter(Boolean).join(", ");
     parts.push(
-      `A studio ${photo} of ${who} ${AGE[o.age]}, ${ANGLE[o.angle]}, ${TILT[o.tilt]}.`,
+      `A studio ${photo} of ${who} ${AGE[o.age].replace("POSS", o.subject === "woman" ? "her" : "his")}, ${ANGLE[o.angle]}, ${TILT[o.tilt]}.`,
       `${cap(EXPRESSION[o.expression])}, ${EYES[o.eyes]}. ${cap(hair)}.`,
       `Bare shoulders and neck, no jewelry, no makeup beyond natural skin.`,
     );
@@ -268,6 +268,22 @@ async function generate(onUse) {
   }
 }
 
+// For making images inside ChatGPT (covered by a Plus plan) instead of the paid API
+async function copyPrompt() {
+  const shape = { "1024x1536": "tall portrait (2:3)", "1024x1024": "square", "1536x1024": "wide landscape (3:2)" }[sizeFor(s)];
+  const n = Number(s.n);
+  const text =
+    `Generate ${n === 1 ? "an image" : `${n} separate image variations`}, ${shape}. ` +
+    `Photorealistic, no illustration or drawing style.\n\n${buildPrompt()}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    $("genStatus").textContent =
+      "Copied. Paste it into ChatGPT, download the image, then drag it onto this page — it opens in the Copier.";
+  } catch {
+    $("genStatus").textContent = "Couldn't copy automatically. Open “See the prompt” below and copy it from there.";
+  }
+}
+
 export function switchTab(name) {
   for (const t of document.querySelectorAll(".tabs [data-tab]")) {
     t.setAttribute("aria-selected", t.dataset.tab === name);
@@ -285,6 +301,7 @@ export function initGenerator({ onUse }) {
   wire();
   sync();
   $("genBtn").addEventListener("click", () => generate(use));
+  $("copyPromptBtn").addEventListener("click", copyPrompt);
   checkKey();
   loadHistory(use);
   window.addEventListener("focus", checkKey);

@@ -24,6 +24,7 @@
           <strong>Add your OpenAI key to start.</strong>
           Open the <code>.env</code> file in the tools folder and paste your key after
           <code>OPENAI_API_KEY=</code>. No restart needed.
+          No key? Use <em>Copy prompt for ChatGPT</em> at the bottom instead.
         </div>
 
         <section class="group">
@@ -166,6 +167,7 @@
               <option value="gpt-image-2.6-sunburst">Sunburst (more precise)</option>
             </select></label>
           <button id="genBtn" class="btn primary wide">Generate</button>
+          <button id="copyPromptBtn" class="btn wide" title="Free with ChatGPT Plus: paste it into ChatGPT, then drop the image into the Copier">Copy prompt for ChatGPT</button>
           <p class="hint" id="genStatus" role="status"></p>
           <details class="prompt">
             <summary>See the prompt</summary>
