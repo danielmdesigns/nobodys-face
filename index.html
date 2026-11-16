@@ -3,17 +3,178 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Copier</title>
+  <title>Broken Vow Tools</title>
   <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
   <div class="app">
     <aside class="panel">
       <header class="brand">
-        <h1>Copier</h1>
-        <p>Photo in, photocopy out.</p>
+        <h1>tools</h1>
+        <p>Make a face, then run it through the copier.</p>
       </header>
 
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="generate" aria-selected="true">1 · Generate</button>
+        <button role="tab" data-tab="copier" aria-selected="false">2 · Copier</button>
+      </nav>
+
+      <div id="genPanel" class="tabpanel">
+        <div class="keynote" id="keyNote" hidden>
+          <strong>Add your OpenAI key to start.</strong>
+          Open the <code>.env</code> file in the tools folder and paste your key after
+          <code>OPENAI_API_KEY=</code>. No restart needed.
+        </div>
+
+        <section class="group">
+          <h2>Subject</h2>
+          <div class="seg" data-key="subject">
+            <button data-v="woman">Woman</button>
+            <button data-v="man">Man</button>
+            <button data-v="skull">Skull</button>
+          </div>
+        </section>
+
+        <section class="group">
+          <h2>Pose</h2>
+          <label class="ctl select"><span>Facing</span>
+            <select data-key="angle">
+              <option value="forward">Forward</option>
+              <option value="threeLeft">¾ left</option>
+              <option value="profileLeft">Profile left</option>
+              <option value="threeRight">¾ right</option>
+              <option value="profileRight">Profile right</option>
+            </select></label>
+          <label class="ctl select"><span>Head</span>
+            <select data-key="tilt">
+              <option value="level">Level</option>
+              <option value="back">Tilted back, looking up</option>
+              <option value="down">Chin down</option>
+              <option value="side">Tilted to the side</option>
+            </select></label>
+          <label class="ctl select"><span>Framing</span>
+            <select data-key="framing">
+              <option value="close">Face close-up</option>
+              <option value="neck">Head and neck</option>
+              <option value="shoulders">Head and shoulders</option>
+            </select></label>
+        </section>
+
+        <section class="group" data-only="human">
+          <h2>Person</h2>
+          <label class="ctl select"><span>Expression</span>
+            <select data-key="expression">
+              <option value="stoic">Stoic</option>
+              <option value="screaming">Screaming</option>
+              <option value="anguish">Anguished</option>
+              <option value="serene">Serene</option>
+              <option value="mouthOpen">Mouth slightly open</option>
+              <option value="defiant">Defiant</option>
+            </select></label>
+          <label class="ctl select"><span>Eyes</span>
+            <select data-key="eyes">
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+              <option value="up">Rolled up / looking up</option>
+            </select></label>
+          <label class="ctl select"><span>Age</span>
+            <select data-key="age">
+              <option value="20s">20s</option>
+              <option value="30s">30s</option>
+              <option value="40s">40s–50s</option>
+              <option value="old">60+</option>
+            </select></label>
+          <label class="ctl select"><span>Hair</span>
+            <select data-key="hair">
+              <option value="shaved">Shaved</option>
+              <option value="cropped">Very short</option>
+              <option value="short">Short</option>
+              <option value="long">Long</option>
+            </select></label>
+          <label class="ctl select"><span>Hair motion</span>
+            <select data-key="hairMotion">
+              <option value="still">Still</option>
+              <option value="wind">Blowing in the wind</option>
+              <option value="wet">Wet, slicked</option>
+              <option value="messy">Messy, tangled</option>
+            </select></label>
+        </section>
+
+        <section class="group" data-only="skull">
+          <h2>Skull</h2>
+          <label class="ctl select"><span>Parts</span>
+            <select data-key="skullParts">
+              <option value="full">Full skull with jaw</option>
+              <option value="noJaw">Cranium, no jaw</option>
+              <option value="jawOpen">Full skull, jaw hanging open</option>
+              <option value="jawOnly">Lower jaw only</option>
+            </select></label>
+          <label class="ctl select"><span>Condition</span>
+            <select data-key="skullCondition">
+              <option value="clean">Clean</option>
+              <option value="cracked">Cracked</option>
+              <option value="teeth">Missing teeth</option>
+              <option value="weathered">Weathered, old</option>
+            </select></label>
+        </section>
+
+        <section class="group">
+          <h2>Light</h2>
+          <label class="ctl select"><span>Light from</span>
+            <select data-key="light">
+              <option value="above">Above</option>
+              <option value="upperLeft">Upper left</option>
+              <option value="upperRight">Upper right</option>
+              <option value="side">Hard side</option>
+              <option value="below">Below</option>
+            </select></label>
+          <label class="ctl select"><span>Background</span>
+            <select data-key="background">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select></label>
+          <label class="ctl select"><span>Photo</span>
+            <select data-key="photo">
+              <option value="bw">Black &amp; white</option>
+              <option value="color">Color</option>
+            </select></label>
+        </section>
+
+        <section class="group">
+          <h2>Extra details</h2>
+          <textarea data-key="notes" rows="2" placeholder="Optional, e.g. freckles, a scar on the cheek, bruised"></textarea>
+        </section>
+
+        <section class="group">
+          <h2>Make</h2>
+          <label class="ctl select"><span>How many</span>
+            <select data-key="n">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select></label>
+          <label class="ctl select"><span>Quality</span>
+            <select data-key="quality">
+              <option value="low">Draft (cheapest)</option>
+              <option value="medium">Normal</option>
+              <option value="high">High</option>
+            </select></label>
+          <label class="ctl select"><span>Model</span>
+            <select data-key="model">
+              <option value="gpt-image-2.6-flare">Flare (fast)</option>
+              <option value="gpt-image-2.6-sunburst">Sunburst (more precise)</option>
+            </select></label>
+          <button id="genBtn" class="btn primary wide">Generate</button>
+          <p class="hint" id="genStatus" role="status"></p>
+          <details class="prompt">
+            <summary>See the prompt</summary>
+            <p id="promptPreview"></p>
+          </details>
+        </section>
+      </div>
+
+      <div id="copierPanel" class="tabpanel" hidden>
       <section class="group">
         <button id="openBtn" class="btn primary wide">Open image…</button>
         <input id="fileInput" type="file" accept="image/*" hidden>
@@ -89,9 +250,20 @@
       </section>
 
       <button id="resetBtn" class="link" data-needs-image>Reset settings</button>
+      </div>
     </aside>
 
-    <main class="stage" id="stage">
+    <main class="stage gen-mode" id="stage">
+      <div class="gen-stage" id="genStage">
+        <div class="results" id="results">
+          <div class="drop gen-empty" id="genEmpty">
+            <strong>Pick your settings, hit Generate</strong>
+            <span>Each face comes back lit hard so it holds up in the copier.</span>
+          </div>
+        </div>
+        <h3 class="hist-title" id="histTitle" hidden>Earlier</h3>
+        <div class="history" id="history"></div>
+      </div>
       <div class="empty" id="empty">
         <div class="drop">
           <strong>Drop a photo here</strong>

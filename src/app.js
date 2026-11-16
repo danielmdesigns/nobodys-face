@@ -1,4 +1,5 @@
 import { potrace, init as initPotrace } from "../vendor/esm-potrace-wasm/index.js";
+import { initGenerator, switchTab } from "./generator.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -67,6 +68,7 @@ async function loadFile(file) {
     return setStatus("Couldn't read that image.");
   }
   sourceName = (file.name || "copier").replace(/\.[^.]+$/, "") || "copier";
+  switchTab("copier");
   $("empty").hidden = true;
   view.hidden = false;
   document.querySelector(".panel").classList.remove("no-image");
@@ -305,7 +307,8 @@ window.addEventListener("paste", (e) => {
 
 // Space bar = peek at original
 window.addEventListener("keydown", (e) => {
-  if (e.code === "Space" && source && e.target.tagName !== "INPUT" && e.target.tagName !== "SELECT") {
+  if (e.code === "Space" && source && !$("copierPanel").hidden &&
+      !["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(e.target.tagName)) {
     e.preventDefault();
     startCompare();
   }
@@ -314,3 +317,4 @@ window.addEventListener("keyup", (e) => { if (e.code === "Space") endCompare(); 
 
 document.querySelector(".panel").classList.add("no-image");
 syncControls();
+initGenerator({ onUse: loadFile });

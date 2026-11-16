@@ -1,0 +1,291 @@
+// Face & skull generator: turns dropdown settings into a photo prompt,
+// asks the local server (server.py) to generate, and hands results to the copier.
+
+const $ = (id) => document.getElementById(id);
+const STORE_KEY = "generator.settings.v1";
+
+const DEFAULTS = {
+  subject: "woman", angle: "forward", tilt: "back", framing: "neck",
+  expression: "stoic", eyes: "open", age: "20s", hair: "short", hairMotion: "still",
+  skullParts: "full", skullCondition: "clean",
+  light: "above", background: "light", photo: "bw", notes: "",
+  n: "2", quality: "medium", model: "gpt-image-2.6-flare",
+};
+
+let s = { ...DEFAULTS, ...load() };
+let busy = false;
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+}
+
+// ---------- prompt ----------
+
+const ANGLE = {
+  forward: "facing straight toward the camera",
+  threeLeft: "head turned in three-quarter view toward the left of the frame",
+  profileLeft: "in full side profile facing the left of the frame",
+  threeRight: "head turned in three-quarter view toward the right of the frame",
+  profileRight: "in full side profile facing the right of the frame",
+};
+const TILT = {
+  level: "head level",
+  back: "head tilted back with the chin raised, face angled up toward the light",
+  down: "chin tucked down, face angled slightly toward the floor",
+  side: "head tilted to one side",
+};
+const LIGHT = {
+  above: "a single hard spotlight directly above and slightly in front",
+  upperLeft: "a single hard light from the upper left",
+  upperRight: "a single hard light from the upper right",
+  side: "a single hard light from one side, leaving the other half of the face in deep shadow",
+  below: "a single hard light from below, horror-style",
+};
+const EXPRESSION = {
+  stoic: "a stoic, expressionless face, mouth closed",
+  screaming: "screaming with the mouth wide open, face tense",
+  anguish: "an anguished expression, brow furrowed, lips parted",
+  serene: "a calm, serene expression",
+  mouthOpen: "lips slightly parted, expression blank",
+  defiant: "a defiant, hard stare",
+};
+const EYES = {
+  open: "eyes open",
+  closed: "eyes closed",
+  up: "eyes rolled upward",
+};
+const AGE = { "20s": "in their twenties", "30s": "in their thirties", "40s": "in their forties", old: "in their late sixties, with lined skin" };
+const HAIR = {
+  shaved: "a shaved head",
+  cropped: "very short cropped hair",
+  short: "short hair",
+  long: "long hair",
+};
+const HAIR_MOTION = {
+  still: "",
+  wind: "hair blowing hard sideways in a strong wind",
+  wet: "wet hair slicked back",
+  messy: "messy, tangled hair",
+};
+const FRAMING = {
+  close: "tight close-up of the face, filling most of the frame",
+  neck: "framed from the top of the head to the base of the neck",
+  shoulders: "framed from the top of the head to the shoulders",
+};
+const SKULL_FRAMING = {
+  close: "tight close-up, the bone filling most of the frame",
+  neck: "the whole subject in frame, filling about two-thirds of it",
+  shoulders: "the whole subject in frame with generous empty space around it",
+};
+const SKULL_PARTS = {
+  full: "a complete real human skull with its lower jaw attached",
+  noJaw: "a real human cranium with no lower jaw",
+  jawOpen: "a complete real human skull with the lower jaw hanging open",
+  jawOnly: "a single real human lower jawbone (mandible) with teeth, on its own",
+};
+const SKULL_COND = {
+  clean: "clean bone",
+  cracked: "with visible cracks running across the bone",
+  teeth: "with several teeth missing",
+  weathered: "old, weathered and stained bone with chips and pits",
+};
+
+export function buildPrompt(o = s) {
+  const human = o.subject !== "skull";
+  const photo = o.photo === "bw" ? "black-and-white photograph" : "color photograph";
+  const parts = [];
+
+  if (human) {
+    const who = o.subject === "woman" ? "a woman" : "a man";
+    const hair = [HAIR[o.hair], HAIR_MOTION[o.hairMotion]].filter(Boolean).join(", ");
+    parts.push(
+      `A studio ${photo} of ${who} ${AGE[o.age]}, ${ANGLE[o.angle]}, ${TILT[o.tilt]}.`,
+      `${cap(EXPRESSION[o.expression])}, ${EYES[o.eyes]}. ${cap(hair)}.`,
+      `Bare shoulders and neck, no jewelry, no makeup beyond natural skin.`,
+    );
+  } else {
+    parts.push(
+      `A studio ${photo} of ${SKULL_PARTS[o.skullParts]}, ${SKULL_COND[o.skullCondition]},`,
+      `${ANGLE[o.angle]}, ${o.tilt === "back" ? "tilted back, angled up toward the light" : TILT[o.tilt]}.`,
+    );
+  }
+
+  parts.push(
+    `${cap(human ? FRAMING[o.framing] : SKULL_FRAMING[o.framing])}, centered, with a little space around the edges.`,
+    `Lit by ${LIGHT[o.light]}. Strong chiaroscuro: deep black shadows`,
+    human
+      ? `in the eye sockets, under the brow, cheekbones, nose and jaw; bright clean highlights on the forehead, cheekbones, bridge of the nose and lips.`
+      : `inside the eye sockets, nasal cavity and under the cheekbones and jaw; bright clean highlights on the top of the cranium, brow ridge, cheekbones and teeth.`,
+    `Very high contrast with few mid-tones, so the image still reads clearly when reduced to pure black and white on a photocopier.`,
+    o.background === "dark"
+      ? `Plain, seamless, near-black background, with the subject's edges catching the light so they separate from it.`
+      : `Plain, seamless, very light gray background, evenly lit.`,
+    `Sharp focus, real photographic texture, 85mm lens. One subject only. No text, no props, no frame.`,
+  );
+  if (human) parts.push(`An anonymous person, not a real or famous individual.`);
+  if (o.notes.trim()) parts.push(`Details: ${o.notes.trim()}.`);
+  return parts.join(" ");
+}
+
+function cap(t) { return t ? t[0].toUpperCase() + t.slice(1) : t; }
+
+function sizeFor(o) {
+  if (o.subject === "skull" && o.skullParts === "jawOnly") return "1536x1024";
+  if (o.framing === "close") return "1024x1024";
+  return "1024x1536";
+}
+
+function label(o) {
+  if (o.subject === "skull") return `skull-${o.skullParts}`;
+  return `${o.subject}-${o.expression}`;
+}
+
+// ---------- UI ----------
+
+function sync() {
+  for (const el of document.querySelectorAll("#genPanel [data-key]")) {
+    const k = el.dataset.key;
+    if (el.classList.contains("seg")) {
+      for (const b of el.querySelectorAll("button")) b.setAttribute("aria-pressed", b.dataset.v === s[k]);
+    } else {
+      el.value = s[k];
+    }
+  }
+  const human = s.subject !== "skull";
+  for (const el of document.querySelectorAll('[data-only="human"]')) el.hidden = !human;
+  for (const el of document.querySelectorAll('[data-only="skull"]')) el.hidden = human;
+  $("promptPreview").textContent = buildPrompt();
+}
+
+function wire() {
+  for (const el of document.querySelectorAll("#genPanel [data-key]")) {
+    const k = el.dataset.key;
+    if (el.classList.contains("seg")) {
+      el.addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        s[k] = b.dataset.v;
+        save(); sync();
+      });
+    } else {
+      el.addEventListener(el.tagName === "TEXTAREA" ? "input" : "change", () => {
+        s[k] = el.value; save(); sync();
+      });
+    }
+  }
+}
+
+async function checkKey() {
+  try {
+    const r = await fetch("/api/status");
+    const { keySet } = await r.json();
+    $("keyNote").hidden = keySet;
+    return keySet;
+  } catch {
+    $("keyNote").hidden = false;
+    $("keyNote").innerHTML = "<strong>The generator needs the local server.</strong> Start it with <code>python3 server.py</code> in the tools folder.";
+    return false;
+  }
+}
+
+function tile(item, onUse) {
+  const fig = document.createElement("figure");
+  fig.className = "tile";
+  const img = document.createElement("img");
+  img.src = item.url;
+  img.alt = item.name;
+  img.loading = "lazy";
+  const bar = document.createElement("figcaption");
+  const use = document.createElement("button");
+  use.className = "btn primary";
+  use.textContent = "Use in copier";
+  use.addEventListener("click", async () => {
+    const blob = await (await fetch(item.url)).blob();
+    onUse(new File([blob], item.name, { type: blob.type || "image/png" }));
+  });
+  const dl = document.createElement("a");
+  dl.className = "btn";
+  dl.href = item.url;
+  dl.download = item.name;
+  dl.textContent = "Save photo";
+  bar.append(use, dl);
+  fig.append(img, bar);
+  return fig;
+}
+
+async function loadHistory(onUse, skip = new Set()) {
+  try {
+    const { items } = await (await fetch("/api/history")).json();
+    const rest = items.filter((i) => !skip.has(i.name));
+    const h = $("history");
+    h.replaceChildren(...rest.map((i) => tile(i, onUse)));
+    $("histTitle").hidden = rest.length === 0;
+  } catch { /* server not running */ }
+}
+
+async function generate(onUse) {
+  if (busy) return;
+  if (!(await checkKey())) {
+    $("genStatus").textContent = "Add your OpenAI key first (see the note at the top).";
+    return;
+  }
+  busy = true;
+  const btn = $("genBtn");
+  btn.disabled = true;
+  btn.textContent = "Generating…";
+  const n = Number(s.n);
+  $("genStatus").textContent = `Making ${n} image${n > 1 ? "s" : ""}. This usually takes 20–60 seconds.`;
+  const results = $("results");
+  results.replaceChildren(...Array.from({ length: n }, () => {
+    const p = document.createElement("div");
+    p.className = "tile placeholder";
+    return p;
+  }));
+  try {
+    const r = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: buildPrompt(), model: s.model, quality: s.quality, n,
+        size: sizeFor(s), label: label(s), settings: s,
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `Error ${r.status}`);
+    results.replaceChildren(...data.images.map((i) => tile(i, onUse)));
+    $("genStatus").textContent = "Done. Pick one to send to the copier.";
+    loadHistory(onUse, new Set(data.images.map((i) => i.name)));
+  } catch (err) {
+    results.replaceChildren();
+    $("genStatus").textContent = err.message;
+  } finally {
+    busy = false;
+    btn.disabled = false;
+    btn.textContent = "Generate";
+  }
+}
+
+export function switchTab(name) {
+  for (const t of document.querySelectorAll(".tabs [data-tab]")) {
+    t.setAttribute("aria-selected", t.dataset.tab === name);
+  }
+  $("genPanel").hidden = name !== "generate";
+  $("copierPanel").hidden = name !== "copier";
+  $("stage").classList.toggle("gen-mode", name === "generate");
+}
+
+export function initGenerator({ onUse }) {
+  const use = (file) => { switchTab("copier"); onUse(file); };
+  for (const t of document.querySelectorAll(".tabs [data-tab]")) {
+    t.addEventListener("click", () => switchTab(t.dataset.tab));
+  }
+  wire();
+  sync();
+  $("genBtn").addEventListener("click", () => generate(use));
+  checkKey();
+  loadHistory(use);
+  window.addEventListener("focus", checkKey);
+}

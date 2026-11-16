@@ -7,15 +7,24 @@ Art tools for Broken Vow. Name is a placeholder.
 Turns a photo into photocopier-style one-color art: threshold, grain, copy-of-a-copy
 degradation, ink spread, dust. Exports a vector SVG or a transparent PNG.
 
-Run it locally:
+## Generator
+
+Makes photos of faces and skulls lit hard for the copier, using OpenAI's image
+API (pay-as-you-go, separate from a ChatGPT subscription). Pick subject, pose,
+expression, hair, skull parts, light and background, then send any result to the
+copier. Every image is saved in `generated/` (not uploaded to GitHub) with the
+settings used.
+
+Setup: put your OpenAI API key in `.env` (copy `.env.example`). It never leaves
+this Mac; the browser talks to `server.py`, which talks to OpenAI.
+
+## Run it
 
 ```bash
-python3 -m http.server 5173 --bind 127.0.0.1
+python3 server.py
 ```
 
 Then open http://127.0.0.1:5173
-
-Coming next: a face and skull generator that feeds straight into the copier.
 
 Vector tracing uses [esm-potrace-wasm](https://github.com/tomayac/esm-potrace-wasm)
 (GPL-2.0, vendored in `vendor/`).

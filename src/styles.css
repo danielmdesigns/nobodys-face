@@ -133,7 +133,7 @@ input[type=color] { width: 32px; height: 24px; border: 1px solid var(--line); ba
   image-rendering: auto;
 }
 
-.empty .drop {
+.drop {
   border: 2px dashed #3a3a3a;
   border-radius: 12px;
   padding: 60px 50px;
@@ -149,6 +149,76 @@ input[type=color] { width: 32px; height: 24px; border: 1px solid var(--line); ba
   position: absolute; top: 14px; right: 16px;
   background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 99px; color: var(--muted); font-size: 12px;
 }
+
+/* ---------- tabs ---------- */
+.tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  margin-top: 16px; background: var(--field); padding: 4px; border-radius: var(--radius);
+}
+.tabs button {
+  background: none; border: 0; color: var(--muted); padding: 8px; border-radius: 4px;
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.tabs button[aria-selected=true] { background: var(--text); color: var(--bg); }
+
+/* ---------- generator panel ---------- */
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.seg button {
+  background: var(--field); color: var(--text); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 8px 4px; font: inherit; cursor: pointer;
+}
+.seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+
+.ctl.select select { width: 100%; }
+#genPanel .ctl.select { grid-template-columns: 92px 1fr; margin-top: 0; }
+
+textarea {
+  width: 100%; background: var(--field); color: var(--text); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 8px; font: inherit; resize: vertical;
+}
+
+#genBtn { margin-top: 6px; padding: 10px; font-size: 14px; }
+
+.keynote {
+  margin-top: 14px; padding: 10px 12px; border-radius: var(--radius);
+  background: #2a2610; border: 1px solid #5a5214; color: var(--text); font-size: 12px;
+}
+.keynote strong { display: block; margin-bottom: 2px; }
+code { background: #00000055; padding: 1px 4px; border-radius: 3px; }
+
+.prompt { margin-top: 10px; color: var(--muted); font-size: 12px; }
+.prompt summary { cursor: pointer; }
+.prompt p { margin: 6px 0 0; line-height: 1.5; }
+
+/* ---------- generator stage ---------- */
+.gen-stage { display: none; width: 100%; height: 100%; overflow-y: auto; align-self: stretch; }
+.stage.gen-mode { place-items: start stretch; }
+.stage.gen-mode .gen-stage { display: block; }
+.stage.gen-mode > #empty, .stage.gen-mode > #view, .stage.gen-mode > #busy { display: none; }
+
+.results, .history {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.history { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.history .tile figcaption .btn { padding: 5px 7px; font-size: 11px; }
+.hist-title {
+  margin: 32px 0 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--muted); font-weight: 600;
+}
+
+.tile { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.tile img { display: block; width: 100%; height: auto; background: #222; }
+.tile figcaption { display: flex; gap: 6px; padding: 8px; }
+.tile figcaption .btn { flex: 1; text-align: center; text-decoration: none; }
+.tile.placeholder {
+  aspect-ratio: 2 / 3;
+  background: linear-gradient(100deg, #1f1f1f 30%, #2a2a2a 50%, #1f1f1f 70%) 0 0 / 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer { to { background-position: -150% 0; } }
+
+.gen-empty { margin: 10vh auto 0; grid-column: 1 / -1; }
 
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
