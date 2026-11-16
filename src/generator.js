@@ -67,7 +67,10 @@ const HAIR = {
 };
 const HAIR_MOTION = {
   still: "",
-  wind: "hair blowing hard sideways in a strong wind",
+  wind: "hair blowing hard to one side in a strong wind",
+  windLeft: "hair blowing hard toward the left of the frame in a strong wind",
+  windRight: "hair blowing hard toward the right of the frame in a strong wind",
+  spread: "hair lifted and spread out wide to both sides of the head, fanned out as if floating or caught in an updraft",
   wet: "wet hair slicked back",
   messy: "messy, tangled hair",
 };
@@ -138,6 +141,13 @@ export function buildPrompt(o = s) {
       : `Plain, seamless, very light gray background, evenly lit.`,
     `Sharp focus, real photographic texture, 85mm lens. One subject only. No text, no props, no frame.`,
   );
+  if (hasHair(o)) {
+    parts.push(
+      `IMPORTANT: do not crop or cut off the hair. The whole head and every strand of hair,`,
+      `including the tips of any hair blowing outward, must be fully inside the frame, with plain background visible`,
+      `beyond the outermost hair on the top and both sides. Zoom out as far as needed to fit all of it.`,
+    );
+  }
   if (human) parts.push(`An anonymous person, not a real or famous individual.`);
   if (o.notes.trim()) parts.push(`Details: ${o.notes.trim()}.`);
   return parts.join(" ");
@@ -145,8 +155,16 @@ export function buildPrompt(o = s) {
 
 function cap(t) { return t ? t[0].toUpperCase() + t.slice(1) : t; }
 
+function hasHair(o) {
+  if (o.hair === "none" || o.hair === "shaved") return false;
+  return !(o.subject === "skull" && o.skullParts === "jawOnly");
+}
+
+// Hair that blows out needs room, so widen the canvas instead of cropping it
 function sizeFor(o) {
   if (o.subject === "skull" && o.skullParts === "jawOnly") return "1536x1024";
+  if (hasHair(o) && o.hairMotion === "spread") return "1536x1024";
+  if (hasHair(o) && ["wind", "windLeft", "windRight"].includes(o.hairMotion)) return "1024x1024";
   if (o.framing === "close") return "1024x1024";
   return "1024x1536";
 }
