@@ -59,6 +59,7 @@ const EYES = {
 };
 const AGE = { "20s": "in POSS twenties", "30s": "in POSS thirties", "40s": "in POSS forties", old: "in POSS late sixties, with lined skin" };
 const HAIR = {
+  none: "a completely bald head",
   shaved: "a shaved head",
   cropped: "very short cropped hair",
   short: "short hair",
@@ -69,6 +70,13 @@ const HAIR_MOTION = {
   wind: "hair blowing hard sideways in a strong wind",
   wet: "wet hair slicked back",
   messy: "messy, tangled hair",
+};
+const SKULL_HAIR = {
+  none: "",
+  shaved: "",
+  cropped: "a thin layer of very short, dry hair",
+  short: "short, dry, matted hair",
+  long: "long, dry, stringy hair",
 };
 const FRAMING = {
   close: "tight close-up of the face, filling most of the frame",
@@ -100,7 +108,8 @@ export function buildPrompt(o = s) {
 
   if (human) {
     const who = o.subject === "woman" ? "a woman" : "a man";
-    const hair = [HAIR[o.hair], HAIR_MOTION[o.hairMotion]].filter(Boolean).join(", ");
+    const bare = o.hair === "none" || o.hair === "shaved";
+    const hair = [HAIR[o.hair], bare ? "" : HAIR_MOTION[o.hairMotion]].filter(Boolean).join(", ");
     parts.push(
       `A studio ${photo} of ${who} ${AGE[o.age].replace("POSS", o.subject === "woman" ? "her" : "his")}, ${ANGLE[o.angle]}, ${TILT[o.tilt]}.`,
       `${cap(EXPRESSION[o.expression])}, ${EYES[o.eyes]}. ${cap(hair)}.`,
@@ -111,6 +120,10 @@ export function buildPrompt(o = s) {
       `A studio ${photo} of ${SKULL_PARTS[o.skullParts]}, ${SKULL_COND[o.skullCondition]},`,
       `${ANGLE[o.angle]}, ${o.tilt === "back" ? "tilted back, angled up toward the light" : TILT[o.tilt]}.`,
     );
+    if (SKULL_HAIR[o.hair] && o.skullParts !== "jawOnly") {
+      const motion = HAIR_MOTION[o.hairMotion];
+      parts.push(`${cap(SKULL_HAIR[o.hair])} still attached to the top of the skull${motion ? `, ${motion}` : ""}.`);
+    }
   }
 
   parts.push(
