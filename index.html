@@ -27,6 +27,19 @@
           No key? Use <em>Copy prompt for ChatGPT</em> at the bottom instead.
         </div>
 
+        <div class="keynote" id="keyBox" hidden>
+          <strong>Add your OpenAI key to start.</strong>
+          It's saved only in this browser on this computer, never on the website.
+          <form id="keyForm" class="keyform" autocomplete="off">
+            <input id="keyInput" type="password" placeholder="sk-…" spellcheck="false" aria-label="OpenAI API key">
+            <button class="btn primary" type="submit">Save</button>
+          </form>
+          No key? Use <em>Copy prompt for ChatGPT</em> at the bottom instead.
+        </div>
+        <p class="hint keyset" id="keySet" hidden>
+          OpenAI key saved in this browser. <button class="link" id="forgetKey" type="button">Remove it</button>
+        </p>
+
         <section class="group">
           <div class="seg seg2" data-key="mode">
             <button data-v="settings">From settings</button>

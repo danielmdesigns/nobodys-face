@@ -221,6 +221,13 @@ textarea {
   background: #2a2610; border: 1px solid #5a5214; color: var(--text); font-size: 12px;
 }
 .keynote strong { display: block; margin-bottom: 2px; }
+.keyform { display: flex; gap: 6px; margin: 8px 0; }
+.keyform input {
+  flex: 1; min-width: 0; background: var(--field); color: var(--text); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 7px 8px; font: inherit;
+}
+.keyset { margin-top: 12px; }
+.keyset .link { margin: 0; font-size: 12px; }
 code { background: #00000055; padding: 1px 4px; border-radius: 3px; }
 
 .prompt { margin-top: 10px; color: var(--muted); font-size: 12px; }

@@ -18,7 +18,13 @@ settings used.
 Setup: put your OpenAI API key in `.env` (copy `.env.example`). It never leaves
 this Mac; the browser talks to `server.py`, which talks to OpenAI.
 
-## Run it
+## Use it online
+
+Hosted on GitHub Pages. Online, paste your OpenAI key into the box on the
+Generate tab once per browser; it's saved only in that browser (never on the
+site or in this repo), and generated images are kept in that browser too.
+
+## Run it locally
 
 ```bash
 python3 server.py

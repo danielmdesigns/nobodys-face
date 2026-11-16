@@ -1,7 +1,24 @@
 // Face & skull generator: turns dropdown settings into a photo prompt,
 // asks the local server (server.py) to generate, and hands results to the copier.
 
+import * as direct from "./direct.js";
+
 const $ = (id) => document.getElementById(id);
+
+// "server": running locally with server.py (key in .env, images in generated/)
+// "direct": hosted (e.g. GitHub Pages), key and history live in this browser
+let backend = null;
+async function detectBackend() {
+  if (backend) return backend;
+  try {
+    const r = await fetch("api/status", { cache: "no-store" });
+    const j = r.ok && (r.headers.get("content-type") || "").includes("json") ? await r.json() : null;
+    backend = j && "keySet" in j ? "server" : "direct";
+  } catch {
+    backend = "direct";
+  }
+  return backend;
+}
 const STORE_KEY = "generator.settings.v4";
 
 const DEFAULTS = {
@@ -320,16 +337,40 @@ function wire() {
 }
 
 async function checkKey() {
+  if ((await detectBackend()) === "direct") {
+    const ok = direct.keyLooksSet();
+    $("keyNote").hidden = true;
+    $("keyBox").hidden = ok;
+    $("keySet").hidden = !ok;
+    return ok;
+  }
   try {
-    const r = await fetch("/api/status");
-    const { keySet } = await r.json();
+    const { keySet } = await (await fetch("api/status", { cache: "no-store" })).json();
     $("keyNote").hidden = keySet;
     return keySet;
   } catch {
-    $("keyNote").hidden = false;
-    $("keyNote").innerHTML = "<strong>The generator needs the local server.</strong> Start it with <code>python3 server.py</code> in the nobodys-face folder.";
     return false;
   }
+}
+
+function wireKey() {
+  $("keyForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const k = $("keyInput").value.trim();
+    if (!direct.keyLooksSet(k)) {
+      $("genStatus").textContent = "That doesn't look like an OpenAI key. It should start with sk-";
+      return;
+    }
+    direct.setKey(k);
+    $("keyInput").value = "";
+    $("genStatus").textContent = "Key saved in this browser.";
+    checkKey();
+  });
+  $("forgetKey").addEventListener("click", () => {
+    direct.setKey("");
+    $("genStatus").textContent = "Key removed from this browser.";
+    checkKey();
+  });
 }
 
 function tile(item, onUse) {
@@ -359,7 +400,9 @@ function tile(item, onUse) {
 
 async function loadHistory(onUse, skip = new Set()) {
   try {
-    const { items } = await (await fetch("/api/history")).json();
+    const items = (await detectBackend()) === "direct"
+      ? await direct.history()
+      : (await (await fetch("api/history")).json()).items;
     const rest = items.filter((i) => !skip.has(i.name));
     const h = $("history");
     h.replaceChildren(...rest.map((i) => tile(i, onUse)));
@@ -370,7 +413,7 @@ async function loadHistory(onUse, skip = new Set()) {
 async function generate(onUse) {
   if (busy) return;
   if (!(await checkKey())) {
-    $("genStatus").textContent = "Add your OpenAI key first (see the note at the top).";
+    $("genStatus").textContent = "Add your OpenAI key first (see the box at the top).";
     return;
   }
   busy = true;
@@ -392,20 +435,29 @@ async function generate(onUse) {
     return p;
   }));
   try {
-    const r = await fetch(fromRef ? "/api/reference" : "/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: currentPrompt(), model: s.model, quality: s.quality, n,
-        size: currentSize(), label: fromRef ? "reference" : label(s), settings: s,
-        images: fromRef ? refs.map((r) => r.dataUrl) : undefined,
-      }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || `Error ${r.status}`);
-    results.replaceChildren(...data.images.map((i) => tile(i, onUse)));
+    const req = {
+      prompt: currentPrompt(), model: s.model, quality: s.quality, n,
+      size: currentSize(), label: fromRef ? "reference" : label(s), settings: s,
+      images: fromRef ? refs.map((r) => r.dataUrl) : undefined,
+    };
+    let images;
+    if ((await detectBackend()) === "direct") {
+      const blobs = fromRef ? await direct.fromReference(req) : await direct.generate(req);
+      if (!blobs.length) throw new Error("OpenAI returned no images.");
+      images = await direct.saveImages(blobs, req.label, { prompt: req.prompt, size: req.size, quality: req.quality, settings: s });
+    } else {
+      const r = await fetch(fromRef ? "api/reference" : "api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `Error ${r.status}`);
+      images = data.images;
+    }
+    results.replaceChildren(...images.map((i) => tile(i, onUse)));
     $("genStatus").textContent = "Done. Pick one to send to the copier.";
-    loadHistory(onUse, new Set(data.images.map((i) => i.name)));
+    loadHistory(onUse, new Set(images.map((i) => i.name)));
   } catch (err) {
     results.replaceChildren();
     $("genStatus").textContent = err.message;
@@ -451,6 +503,7 @@ export function initGenerator({ onUse }) {
   }
   wire();
   wireRefs();
+  wireKey();
   sync();
   $("genBtn").addEventListener("click", () => generate(use));
   $("copyPromptBtn").addEventListener("click", copyPrompt);
