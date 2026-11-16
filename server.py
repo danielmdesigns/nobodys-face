@@ -112,7 +112,7 @@ class Handler(SimpleHTTPRequestHandler):
     def generate(self, req):
         key = read_key()
         if not key_looks_set(key):
-            self.send_json(400, {"error": "No OpenAI key yet. Add it to the .env file in the tools folder."})
+            self.send_json(400, {"error": "No OpenAI key yet. Add it to the .env file in the nobodys-face folder."})
             return
 
         prompt = str(req.get("prompt", "")).strip()[:4000]
@@ -176,7 +176,7 @@ def history():
 
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"tools running at http://127.0.0.1:{PORT}")
+    print(f"Nobody's Face running at http://127.0.0.1:{PORT}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

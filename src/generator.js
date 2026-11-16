@@ -186,7 +186,7 @@ async function checkKey() {
     return keySet;
   } catch {
     $("keyNote").hidden = false;
-    $("keyNote").innerHTML = "<strong>The generator needs the local server.</strong> Start it with <code>python3 server.py</code> in the tools folder.";
+    $("keyNote").innerHTML = "<strong>The generator needs the local server.</strong> Start it with <code>python3 server.py</code> in the nobodys-face folder.";
     return false;
   }
 }

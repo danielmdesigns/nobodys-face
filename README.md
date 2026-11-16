@@ -1,6 +1,6 @@
-# tools
+# Nobody's Face
 
-Art tools for Broken Vow. Name is a placeholder.
+Face and skull generator plus photocopier for Broken Vow artwork.
 
 ## Copier
 
