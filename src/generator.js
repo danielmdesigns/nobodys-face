@@ -2,12 +2,12 @@
 // asks the local server (server.py) to generate, and hands results to the copier.
 
 const $ = (id) => document.getElementById(id);
-const STORE_KEY = "generator.settings.v3";
+const STORE_KEY = "generator.settings.v4";
 
 const DEFAULTS = {
   subject: "woman", angle: "forward", tilt: "back", framing: "neck",
   expression: "stoic", eyes: "open", age: "20s", hair: "long", hairMotion: "wind",
-  skullParts: "full", skullCondition: "clean",
+  skullParts: "full", skullBone: "clean", skullCracks: "none", skullTeeth: "all",
   light: "above", background: "light", photo: "bw", notes: "",
   n: "1", quality: "low", model: "gpt-image-2.6-flare",
 };
@@ -97,11 +97,20 @@ const SKULL_PARTS = {
   jawOpen: "a complete real human skull with the lower jaw hanging open",
   jawOnly: "a single real human lower jawbone (mandible) with teeth, on its own",
 };
-const SKULL_COND = {
+const SKULL_BONE = {
   clean: "clean bone",
-  cracked: "with visible cracks running across the bone",
-  teeth: "with several teeth missing",
-  weathered: "old, weathered and stained bone with chips and pits",
+  weathered: "old, weathered, stained bone with chips and pits",
+  ancient: "ancient, crumbling, eroded bone with flaking edges",
+};
+const SKULL_CRACKS = {
+  none: "",
+  some: "a few visible cracks running across it",
+  heavy: "covered in deep cracks and fractures",
+};
+const SKULL_TEETH = {
+  all: "",
+  some: "several teeth missing",
+  most: "most of the teeth missing, only a few left",
 };
 
 export function buildPrompt(o = s) {
@@ -120,7 +129,7 @@ export function buildPrompt(o = s) {
     );
   } else {
     parts.push(
-      `A studio ${photo} of ${SKULL_PARTS[o.skullParts]}, ${SKULL_COND[o.skullCondition]},`,
+      `A studio ${photo} of ${SKULL_PARTS[o.skullParts]}: ${[SKULL_BONE[o.skullBone], SKULL_CRACKS[o.skullCracks], SKULL_TEETH[o.skullTeeth]].filter(Boolean).join(", ")};`,
       `${ANGLE[o.angle]}, ${o.tilt === "back" ? "tilted back, angled up toward the light" : TILT[o.tilt]}.`,
     );
     if (SKULL_HAIR[o.hair] && o.skullParts !== "jawOnly") {
