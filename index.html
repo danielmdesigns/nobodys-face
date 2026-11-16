@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copier</title>
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <header class="brand">
+        <h1>Copier</h1>
+        <p>Photo in, photocopy out.</p>
+      </header>
+
+      <section class="group">
+        <button id="openBtn" class="btn primary wide">Open image…</button>
+        <input id="fileInput" type="file" accept="image/*" hidden>
+        <p class="hint">Or drag a file onto the page, or paste with ⌘V.</p>
+      </section>
+
+      <section class="group" data-needs-image>
+        <h2>Tone</h2>
+        <label class="ctl"><span>Threshold</span><output></output>
+          <input type="range" id="threshold" min="0" max="255" value="128"></label>
+        <label class="ctl"><span>Brightness</span><output></output>
+          <input type="range" id="brightness" min="-100" max="100" value="0"></label>
+        <label class="ctl"><span>Contrast</span><output></output>
+          <input type="range" id="contrast" min="-100" max="100" value="0"></label>
+        <label class="ctl"><span>Smooth</span><output></output>
+          <input type="range" id="smooth" min="0" max="12" step="0.5" value="1.5"></label>
+      </section>
+
+      <section class="group" data-needs-image>
+        <h2>Copier grit</h2>
+        <label class="ctl"><span>Grain</span><output></output>
+          <input type="range" id="grain" min="0" max="100" value="18"></label>
+        <label class="ctl"><span>Grain size</span><output></output>
+          <input type="range" id="grainSize" min="1" max="8" step="0.5" value="1.5"></label>
+        <label class="ctl"><span>Copy of a copy</span><output></output>
+          <input type="range" id="generations" min="0" max="6" value="1"></label>
+        <label class="ctl"><span>Ink spread</span><output></output>
+          <input type="range" id="spread" min="-4" max="4" value="0"></label>
+        <label class="ctl"><span>Dust</span><output></output>
+          <input type="range" id="dust" min="0" max="100" value="0"></label>
+        <label class="ctl"><span>Clean up specks</span><output></output>
+          <input type="range" id="cleanup" min="0" max="200" value="6"></label>
+        <div class="row">
+          <button id="reshuffleBtn" class="btn" title="New random grain and dust">Reshuffle grit</button>
+        </div>
+      </section>
+
+      <section class="group" data-needs-image>
+        <h2>Image</h2>
+        <div class="row">
+          <button id="flipBtn" class="btn" aria-pressed="false">Flip</button>
+          <button id="invertBtn" class="btn" aria-pressed="false">Invert</button>
+          <button id="compareBtn" class="btn" title="Hold to see the original">Hold: original</button>
+        </div>
+        <label class="ctl select"><span>Detail</span>
+          <select id="size">
+            <option value="1000">Draft (1000 px)</option>
+            <option value="1600" selected>Normal (1600 px)</option>
+            <option value="2400">High (2400 px)</option>
+            <option value="3600">Print (3600 px)</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="group" data-needs-image>
+        <h2>Color</h2>
+        <div class="swatches" id="swatches"></div>
+        <div class="row colors">
+          <label>Ink <input type="color" id="inkColor" value="#111111"></label>
+          <label>Paper <input type="color" id="paperColor" value="#efe9dc"></label>
+        </div>
+      </section>
+
+      <section class="group" data-needs-image>
+        <h2>Export</h2>
+        <button id="svgBtn" class="btn primary wide">Download vector (SVG)</button>
+        <div class="row">
+          <button id="pngBtn" class="btn">PNG (clear background)</button>
+          <button id="copyBtn" class="btn">Copy PNG</button>
+        </div>
+        <p class="hint">Exports the ink only, in the ink color. Copy PNG pastes straight into Photoshop.</p>
+        <p class="hint" id="status" role="status"></p>
+      </section>
+
+      <button id="resetBtn" class="link" data-needs-image>Reset settings</button>
+    </aside>
+
+    <main class="stage" id="stage">
+      <div class="empty" id="empty">
+        <div class="drop">
+          <strong>Drop a photo here</strong>
+          <span>Faces and skulls with hard, single-direction light work best.</span>
+        </div>
+      </div>
+      <canvas id="view" hidden></canvas>
+      <div class="busy" id="busy" hidden>working…</div>
+    </main>
+  </div>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
