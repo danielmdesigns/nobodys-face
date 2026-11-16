@@ -245,6 +245,17 @@ for (const k of SLIDERS) {
     saveSettings();
     schedule();
   });
+  // Double-click a slider (or its name) to put it back to the default
+  const label = $(k).parentElement;
+  label.title = `Double-click to reset to ${DEFAULTS[k]}`;
+  label.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    s[k] = DEFAULTS[k];
+    $(k).value = s[k];
+    label.querySelector("output").textContent = s[k];
+    saveSettings();
+    schedule();
+  });
 }
 
 $("size").addEventListener("change", (e) => { s.size = Number(e.target.value); saveSettings(); rebuildGray(); });
