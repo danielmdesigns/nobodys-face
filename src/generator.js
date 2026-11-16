@@ -2,14 +2,14 @@
 // asks the local server (server.py) to generate, and hands results to the copier.
 
 const $ = (id) => document.getElementById(id);
-const STORE_KEY = "generator.settings.v1";
+const STORE_KEY = "generator.settings.v2";
 
 const DEFAULTS = {
   subject: "woman", angle: "forward", tilt: "back", framing: "neck",
-  expression: "stoic", eyes: "open", age: "20s", hair: "short", hairMotion: "still",
+  expression: "stoic", eyes: "open", age: "20s", hair: "short", hairMotion: "wind",
   skullParts: "full", skullCondition: "clean",
   light: "above", background: "light", photo: "bw", notes: "",
-  n: "2", quality: "medium", model: "gpt-image-2.6-flare",
+  n: "1", quality: "low", model: "gpt-image-2.6-flare",
 };
 
 let s = { ...DEFAULTS, ...load() };
