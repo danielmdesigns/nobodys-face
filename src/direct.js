@@ -2,6 +2,7 @@
 // the browser talks to OpenAI directly with a key saved only in this browser,
 // and generated images are kept in this browser's storage (IndexedDB).
 
+// Storage names kept from the old name (Nobody's Face) so saved keys and images carry over
 const KEY_STORE = "nobodysface.openaiKey";
 const API = "https://api.openai.com/v1/images";
 

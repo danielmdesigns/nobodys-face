@@ -1,6 +1,6 @@
-# Nobody's Face
+# Soknik
 
-Face and skull generator plus photocopier for Broken Vow artwork.
+Late-night copy shop for Broken Vow artwork: make faces and skulls, run them through the copier, rough up type on the press. (Kinko's, backwards.)
 
 ## Copier
 
@@ -30,8 +30,8 @@ result straight over.
 
 ## Use it online
 
-Hosted on GitHub Pages. Online, paste your OpenAI key into the box on the
-Generate tab once per browser; it's saved only in that browser (never on the
+Hosted on GitHub Pages at https://danielmdesigns.github.io/soknik/. Paste your OpenAI key into the box on the
+Make tool once per browser; it's saved only in that browser (never on the
 site or in this repo), and generated images are kept in that browser too.
 
 ## Run it locally

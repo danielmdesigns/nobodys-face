@@ -246,7 +246,7 @@ def history():
 
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"Nobody's Face running at http://127.0.0.1:{PORT}")
+    print(f"Soknik running at http://127.0.0.1:{PORT}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
