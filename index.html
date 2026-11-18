@@ -8,17 +8,24 @@
 </head>
 <body>
   <div class="app">
-    <aside class="panel">
-      <header class="brand">
-        <h1>nobody's face</h1>
-        <p>Make a face, run it through the copier, rough it up on the press.</p>
-      </header>
+    <nav class="rail" role="tablist" aria-label="Tools">
+      <div class="mark" title="Nobody's Face">nf</div>
+      <button role="tab" data-tab="generate" aria-selected="true" aria-label="Make" data-tip="Make">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7z"/><path d="M19 15.5c.25 1.6.9 2.25 2.5 2.5-1.6.25-2.25.9-2.5 2.5-.25-1.6-.9-2.25-2.5-2.5 1.6-.25 2.25-.9 2.5-2.5z"/></svg>
+      </button>
+      <button role="tab" data-tab="copier" aria-selected="false" aria-label="Copier" data-tip="Copier">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg>
+      </button>
+      <button role="tab" data-tab="press" aria-selected="false" aria-label="Press" data-tip="Press">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="14" height="6" rx="1.5"/><path d="M18 7h2v5h-8v3"/><rect x="10.5" y="15" width="3" height="6" rx="1"/></svg>
+      </button>
+    </nav>
 
-      <nav class="tabs" role="tablist">
-        <button role="tab" data-tab="generate" aria-selected="true">1 · Generate</button>
-        <button role="tab" data-tab="copier" aria-selected="false">2 · Copier</button>
-        <button role="tab" data-tab="press" aria-selected="false">3 · Press</button>
-      </nav>
+    <aside class="panel">
+      <header class="toolhead">
+        <h1 id="toolTitle">Make</h1>
+        <p id="toolHint">Generate a face or skull with hard, copier-ready light.</p>
+      </header>
 
       <div id="genPanel" class="tabpanel">
         <div class="keynote" id="keyNote" hidden>

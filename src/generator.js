@@ -487,8 +487,16 @@ async function copyPrompt() {
   }
 }
 
+const TOOLS = {
+  generate: ["Make", "Generate a face or skull with hard, copier-ready light."],
+  copier: ["Copier", "Threshold and photocopy grit, then export vector or PNG."],
+  press: ["Press", "Rough up type, logos and artwork like a worn printing press."],
+};
+
 export function switchTab(name) {
-  for (const t of document.querySelectorAll(".tabs [data-tab]")) {
+  $("toolTitle").textContent = TOOLS[name][0];
+  $("toolHint").textContent = TOOLS[name][1];
+  for (const t of document.querySelectorAll(".rail [data-tab]")) {
     t.setAttribute("aria-selected", t.dataset.tab === name);
   }
   $("genPanel").hidden = name !== "generate";
@@ -501,7 +509,7 @@ export function switchTab(name) {
 
 export function initGenerator({ onUse }) {
   const use = (file) => { switchTab("copier"); onUse(file); };
-  for (const t of document.querySelectorAll(".tabs [data-tab]")) {
+  for (const t of document.querySelectorAll(".rail [data-tab]")) {
     t.addEventListener("click", () => switchTab(t.dataset.tab));
   }
   wire();
