@@ -493,7 +493,10 @@ export function switchTab(name) {
   }
   $("genPanel").hidden = name !== "generate";
   $("copierPanel").hidden = name !== "copier";
+  $("pressPanel").hidden = name !== "press";
   $("stage").classList.toggle("gen-mode", name === "generate");
+  $("stage").classList.toggle("press-mode", name === "press");
+  window.dispatchEvent(new Event("tabchange"));
 }
 
 export function initGenerator({ onUse }) {

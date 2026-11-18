@@ -1,5 +1,7 @@
-import { potrace, init as initPotrace } from "../vendor/esm-potrace-wasm/index.js";
 import { initGenerator, switchTab } from "./generator.js";
+import { createZoom, wireZoomBar } from "./zoom.js";
+import { traceSVG, download } from "./trace.js";
+import { initPress, pressLoad, pressZoom, pressHasImage } from "./press.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -72,7 +74,7 @@ async function loadFile(file) {
   $("empty").hidden = true;
   view.hidden = false;
   $("zoombar").hidden = false;
-  zoom = null; // new image starts fitted
+  copierZoom.set(null); // new image starts fitted
   document.querySelector(".panel").classList.remove("no-image");
   setStatus("");
   rebuildGray();
@@ -98,105 +100,13 @@ function rebuildGray() {
   }
   view.width = gw;
   view.height = gh;
-  applyZoom();
+  copierZoom.apply();
   schedule();
 }
 
 // ---------- zoom ----------
-// zoom = null means "fit to window"; otherwise screen pixels per image pixel.
 
-let zoom = null;
-const ZOOM_STEPS = [0.1, 0.15, 0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.5, 2, 3, 4, 6, 8];
-const stageEl = $("stage");
-
-function fitScale() {
-  const pad = 56;
-  return Math.min((stageEl.clientWidth - pad) / gw, (stageEl.clientHeight - pad) / gh, 1);
-}
-
-function currentScale() {
-  return zoom ?? fitScale();
-}
-
-function applyZoom(anchor) {
-  if (!gw) return;
-  const before = anchor ? view.getBoundingClientRect() : null;
-  if (zoom === null) {
-    stageEl.classList.remove("zoomed", "pixels");
-    view.style.width = view.style.height = "";
-  } else {
-    stageEl.classList.add("zoomed");
-    stageEl.classList.toggle("pixels", zoom >= 2);
-    view.style.width = `${Math.round(gw * zoom)}px`;
-    view.style.height = `${Math.round(gh * zoom)}px`;
-  }
-  $("zoomLabel").textContent = zoom === null ? `Fit` : `${Math.round(zoom * 100)}%`;
-  // Keep the point under the cursor (or the center) in place
-  if (before && zoom !== null) {
-    const fx = (anchor.x - before.left) / before.width;
-    const fy = (anchor.y - before.top) / before.height;
-    const after = view.getBoundingClientRect();
-    stageEl.scrollLeft += after.left + fx * after.width - anchor.x;
-    stageEl.scrollTop += after.top + fy * after.height - anchor.y;
-  }
-}
-
-function centerPoint() {
-  const r = stageEl.getBoundingClientRect();
-  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-}
-
-function setZoom(z, anchor = centerPoint()) {
-  zoom = z === null ? null : Math.min(8, Math.max(0.1, z));
-  applyZoom(anchor);
-}
-
-function stepZoom(dir, anchor) {
-  const cur = currentScale();
-  const next = dir > 0
-    ? ZOOM_STEPS.find((z) => z > cur + 0.001) ?? 8
-    : [...ZOOM_STEPS].reverse().find((z) => z < cur - 0.001) ?? 0.1;
-  setZoom(next, anchor);
-}
-
-$("zoomIn").addEventListener("click", () => stepZoom(1));
-$("zoomOut").addEventListener("click", () => stepZoom(-1));
-$("zoomFit").addEventListener("click", () => setZoom(null));
-$("zoom100").addEventListener("click", () => setZoom(1));
-
-// Pinch on a trackpad, or ⌘/Ctrl + scroll, zooms toward the cursor
-stageEl.addEventListener("wheel", (e) => {
-  if (!(e.ctrlKey || e.metaKey) || !source || stageEl.classList.contains("gen-mode")) return;
-  e.preventDefault();
-  setZoom(currentScale() * Math.exp(-e.deltaY * 0.01), { x: e.clientX, y: e.clientY });
-}, { passive: false });
-
-// Drag the image to move around when zoomed in
-let pan = null;
-view.addEventListener("pointerdown", (e) => {
-  if (zoom === null) return;
-  pan = { x: e.clientX, y: e.clientY, sl: stageEl.scrollLeft, st: stageEl.scrollTop };
-  view.setPointerCapture(e.pointerId);
-  stageEl.classList.add("panning");
-});
-view.addEventListener("pointermove", (e) => {
-  if (!pan) return;
-  stageEl.scrollLeft = pan.sl - (e.clientX - pan.x);
-  stageEl.scrollTop = pan.st - (e.clientY - pan.y);
-});
-const endPan = () => { pan = null; stageEl.classList.remove("panning"); };
-view.addEventListener("pointerup", endPan);
-view.addEventListener("pointercancel", endPan);
-
-// Keys: + / − zoom, 0 fits, 1 is actual pixels
-window.addEventListener("keydown", (e) => {
-  if (!source || $("copierPanel").hidden || e.metaKey || e.ctrlKey ||
-      ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
-  if (e.key === "+" || e.key === "=") stepZoom(1);
-  else if (e.key === "-" || e.key === "_") stepZoom(-1);
-  else if (e.key === "0") setZoom(null);
-  else if (e.key === "1") setZoom(1);
-});
+export const copierZoom = createZoom(view);
 
 // ---------- processing ----------
 
@@ -278,31 +188,12 @@ function maskCanvas(inkHex, paperHex) {
   return c;
 }
 
-function download(blob, filename) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-}
-
-let potraceReady = null;
 async function exportSVG() {
   if (!ink) return;
   setStatus("Tracing vector…");
   $("svgBtn").disabled = true;
   try {
-    potraceReady ??= initPotrace();
-    await potraceReady;
-    const paths = await potrace(maskCanvas("#000000", "#ffffff"), {
-      turdsize: 2, turnpolicy: 4, alphamax: 1, opticurve: 1, opttolerance: 0.2,
-      pathonly: true, extractcolors: false,
-    });
-    const svg =
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${gw}" height="${gh}" viewBox="0 0 ${gw} ${gh}">\n` +
-      // potrace paths are in tenth-pixel units with a flipped y axis
-      `<g transform="translate(0,${gh}) scale(0.1,-0.1)" fill="${s.inkColor}">\n` +
-      `<path d="${paths.join(" ")}"/>\n</g>\n</svg>\n`;
+    const svg = await traceSVG(maskCanvas("#000000", "#ffffff"), s.inkColor);
     download(new Blob([svg], { type: "image/svg+xml" }), `${sourceName}-copier.svg`);
     setStatus(`Saved ${sourceName}-copier.svg`);
   } catch (err) {
@@ -408,11 +299,12 @@ window.addEventListener("dragleave", (e) => { if (!e.relatedTarget) stage.classL
 window.addEventListener("drop", (e) => {
   e.preventDefault();
   stage.classList.remove("dragging");
-  loadFile(e.dataTransfer.files[0]);
+  const f = e.dataTransfer.files[0];
+  pressActive() ? pressLoad(f) : loadFile(f);
 });
 window.addEventListener("paste", (e) => {
   const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
-  if (item) loadFile(item.getAsFile());
+  if (item) pressActive() ? pressLoad(item.getAsFile()) : loadFile(item.getAsFile());
 });
 
 // Space bar = peek at original
@@ -427,4 +319,28 @@ window.addEventListener("keyup", (e) => { if (e.code === "Space") endCompare(); 
 
 document.querySelector(".panel").classList.add("no-image");
 syncControls();
+initPress();
 initGenerator({ onUse: loadFile });
+
+// ---------- tabs share the stage and zoom bar ----------
+
+function pressActive() { return !$("pressPanel").hidden; }
+function activeZoom() {
+  if (pressActive()) return pressHasImage() ? pressZoom : null;
+  if (!$("copierPanel").hidden) return source ? copierZoom : null;
+  return null;
+}
+wireZoomBar(activeZoom);
+window.addEventListener("tabchange", () => {
+  const z = activeZoom();
+  $("zoombar").hidden = !z;
+  if (z) z.apply(); else $("stage").classList.remove("zoomed", "pixels");
+});
+
+// Send the copier result to Press for rough edges
+$("toPressBtn").addEventListener("click", async () => {
+  if (!ink) return;
+  const blob = await pngBlob();
+  switchTab("press");
+  pressLoad(new File([blob], `${sourceName}-copier.png`, { type: "image/png" }));
+});

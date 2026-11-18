@@ -11,12 +11,13 @@
     <aside class="panel">
       <header class="brand">
         <h1>nobody's face</h1>
-        <p>Make a face, then run it through the copier.</p>
+        <p>Make a face, run it through the copier, rough it up on the press.</p>
       </header>
 
       <nav class="tabs" role="tablist">
         <button role="tab" data-tab="generate" aria-selected="true">1 · Generate</button>
         <button role="tab" data-tab="copier" aria-selected="false">2 · Copier</button>
+        <button role="tab" data-tab="press" aria-selected="false">3 · Press</button>
       </nav>
 
       <div id="genPanel" class="tabpanel">
@@ -305,11 +306,104 @@
           <button id="pngBtn" class="btn">PNG (clear background)</button>
           <button id="copyBtn" class="btn">Copy PNG</button>
         </div>
+        <button id="toPressBtn" class="btn wide" style="margin-top:6px">Rough it up in Press →</button>
         <p class="hint">Exports the ink only, in the ink color. Copy PNG pastes straight into Photoshop.</p>
         <p class="hint" id="status" role="status"></p>
       </section>
 
       <button id="resetBtn" class="link" data-needs-image>Reset settings</button>
+      </div>
+
+      <div id="pressPanel" class="tabpanel" hidden>
+      <section class="group">
+        <button id="pressOpenBtn" class="btn primary wide">Open artwork…</button>
+        <input id="pressFileInput" type="file" accept="image/*" hidden>
+        <p class="hint">Type, logos, vectors or photos. Drag a file onto the page or paste a screenshot with ⌘V. Transparent PNGs work best.</p>
+      </section>
+
+      <section class="group" data-needs-art>
+        <h2>Start from</h2>
+        <div class="presets" id="pressPresets"></div>
+        <label class="ctl"><span>Overall amount</span><output></output>
+          <input type="range" id="p_overall" min="0" max="200" value="100"></label>
+      </section>
+
+      <section class="group" data-needs-art>
+        <h2>Edges</h2>
+        <label class="ctl"><span>Rough edges</span><output></output>
+          <input type="range" id="p_rough" min="0" max="100" value="30"></label>
+        <label class="ctl"><span>Grit size</span><output></output>
+          <input type="range" id="p_roughSize" min="1" max="16" step="0.5" value="3"></label>
+        <label class="ctl"><span>Ink spread</span><output></output>
+          <input type="range" id="p_spread" min="-100" max="100" value="10"></label>
+      </section>
+
+      <section class="group" data-needs-art>
+        <h2>Ink</h2>
+        <label class="ctl"><span>Worn ink</span><output></output>
+          <input type="range" id="p_wear" min="0" max="100" value="15"></label>
+        <label class="ctl"><span>Wear size</span><output></output>
+          <input type="range" id="p_wearSize" min="2" max="40" value="8"></label>
+        <label class="ctl"><span>Roller streaks</span><output></output>
+          <input type="range" id="p_streaks" min="0" max="100" value="0"></label>
+        <div class="seg seg2 mini" id="p_streakDir">
+          <button data-v="horizontal">Streaks across</button>
+          <button data-v="vertical">Streaks down</button>
+        </div>
+        <label class="ctl"><span>Specks</span><output></output>
+          <input type="range" id="p_specks" min="0" max="100" value="10"></label>
+      </section>
+
+      <section class="group" data-needs-art>
+        <h2>Distort</h2>
+        <label class="ctl"><span>Wobble</span><output></output>
+          <input type="range" id="p_wobble" min="0" max="100" value="8"></label>
+        <label class="ctl"><span>Wobble size</span><output></output>
+          <input type="range" id="p_wobbleSize" min="4" max="120" value="24"></label>
+        <label class="ctl"><span>Slice shift</span><output></output>
+          <input type="range" id="p_slice" min="0" max="100" value="0"></label>
+        <div class="row">
+          <button id="pressShuffle" class="btn" title="Same settings, new random grit">Reshuffle grit</button>
+          <button id="pressCompare" class="btn" title="Hold to see the original (or hold space)">Hold: original</button>
+        </div>
+      </section>
+
+      <section class="group" data-needs-art>
+        <h2>Color</h2>
+        <div class="seg seg2" id="p_colorMode">
+          <button data-v="original">Keep colors</button>
+          <button data-v="mono">One ink</button>
+        </div>
+        <div class="seg seg2" id="p_bg" style="margin-top:6px">
+          <button data-v="clear">Clear background</button>
+          <button data-v="paper">Paper</button>
+        </div>
+        <div class="row colors">
+          <label>Ink <input type="color" id="p_inkColor" value="#111111"></label>
+          <label>Paper <input type="color" id="p_paperColor" value="#efe9dc"></label>
+        </div>
+        <label class="ctl select"><span>Detail</span>
+          <select id="p_size">
+            <option value="1000">Draft (1000 px)</option>
+            <option value="1600">Normal (1600 px)</option>
+            <option value="2400">High (2400 px)</option>
+            <option value="3600">Print (3600 px)</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="group" data-needs-art>
+        <h2>Export</h2>
+        <button id="pressPngBtn" class="btn primary wide">Download PNG</button>
+        <div class="row">
+          <button id="pressCopyBtn" class="btn">Copy PNG</button>
+          <button id="pressSvgBtn" class="btn">Vector (SVG, one color)</button>
+        </div>
+        <p class="hint">PNG keeps your colors and the background choice. The vector uses the ink color.</p>
+        <p class="hint" id="pressStatus" role="status"></p>
+      </section>
+
+      <button id="pressResetBtn" class="link" data-needs-art>Reset settings</button>
       </div>
     </aside>
 
@@ -330,7 +424,14 @@
           <span>Faces and skulls with hard, single-direction light work best.</span>
         </div>
       </div>
-      <canvas id="view" hidden></canvas>
+      <canvas id="view" class="art" hidden></canvas>
+      <div class="empty" id="pressEmpty">
+        <div class="drop">
+          <strong>Drop your artwork here</strong>
+          <span>Type, logos, vectors or photos. Screenshots work too.</span>
+        </div>
+      </div>
+      <canvas id="pressView" class="art" hidden></canvas>
       <div class="busy" id="busy" hidden>working…</div>
       <div class="zoombar" id="zoombar" hidden>
         <button class="btn" id="zoomOut" title="Zoom out (−)" aria-label="Zoom out">−</button>

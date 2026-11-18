@@ -18,6 +18,16 @@ settings used.
 Setup: put your OpenAI API key in `.env` (copy `.env.example`). It never leaves
 this Mac; the browser talks to `server.py`, which talks to OpenAI.
 
+## Press
+
+Rough up type, logos, vectors or artwork like a worn printing press: rough edges,
+ink spread, worn ink, roller streaks, specks, wobble and slice shift. Presets run from
+*Barely* (just a slightly imperfect edge) to *Wrecked*, and **Overall amount** dials any
+of them up or down. Keeps your colors (or one ink color), drops the paper out, and exports
+a PNG with a clear background or a one-color SVG. Transparent PNGs work best; screenshots
+on a plain background work too. The Copier's **Rough it up in Press** button sends its
+result straight over.
+
 ## Use it online
 
 Hosted on GitHub Pages. Online, paste your OpenAI key into the box on the

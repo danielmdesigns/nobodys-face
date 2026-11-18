@@ -126,7 +126,7 @@ input[type=color] { width: 32px; height: 24px; border: 1px solid var(--line); ba
 }
 .stage.dragging { outline: 2px dashed var(--accent); outline-offset: -14px; }
 
-#view {
+.art {
   max-width: 100%;
   max-height: 100%;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
@@ -147,9 +147,9 @@ input[type=color] { width: 32px; height: 24px; border: 1px solid var(--line); ba
 
 /* ---------- zoom ---------- */
 .stage.zoomed { overflow: auto; place-items: start; }
-.stage.zoomed #view { max-width: none; max-height: none; margin: auto; cursor: grab; }
-.stage.zoomed.panning #view { cursor: grabbing; }
-.stage.pixels #view { image-rendering: pixelated; }
+.stage.zoomed .art { max-width: none; max-height: none; margin: auto; cursor: grab; }
+.stage.zoomed.panning .art { cursor: grabbing; }
+.stage.pixels .art { image-rendering: pixelated; }
 
 .zoombar {
   position: fixed; right: 16px; bottom: 16px; z-index: 5;
@@ -168,7 +168,7 @@ input[type=color] { width: 32px; height: 24px; border: 1px solid var(--line); ba
 
 /* ---------- tabs ---------- */
 .tabs {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;
   margin-top: 16px; background: var(--field); padding: 4px; border-radius: var(--radius);
 }
 .tabs button {
@@ -240,6 +240,21 @@ code { background: #00000055; padding: 1px 4px; border-radius: 3px; }
 .stage.gen-mode .gen-stage { display: block; }
 .stage.gen-mode > #empty, .stage.gen-mode > #view, .stage.gen-mode > #busy { display: none; }
 
+/* ---------- press ---------- */
+.stage:not(.press-mode) > #pressEmpty, .stage:not(.press-mode) > #pressView { display: none; }
+.stage.press-mode > #empty, .stage.press-mode > #view { display: none; }
+.panel.no-art [data-needs-art] { opacity: 0.35; pointer-events: none; }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 12px; }
+.presets button {
+  background: var(--field); color: var(--text); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 7px 4px; font: inherit; cursor: pointer;
+}
+.presets button:hover { border-color: var(--accent); }
+.presets button[aria-pressed=true] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+.seg.mini { margin: -2px 0 10px; }
+.seg.mini button { padding: 5px 4px; font-size: 12px; }
+#pressPanel .seg button[aria-pressed=true] { background: var(--text); color: var(--bg); border-color: var(--text); }
+
 .results, .history {
   display: grid; gap: 16px;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -269,3 +284,7 @@ code { background: #00000055; padding: 1px 4px; border-radius: 3px; }
   .panel { border-right: 0; border-bottom: 1px solid var(--line); }
   .stage { min-height: 70vh; padding: 16px; }
 }
+
+/* Press: light checkerboard so dark ink on a clear background stays visible */
+#pressView { background: repeating-conic-gradient(#e4e1da 0 25%, #f4f2ee 0 50%) 0 0 / 16px 16px; }
+.tabs button { white-space: nowrap; padding: 8px 2px; font-size: 12px; }
