@@ -31,7 +31,7 @@ result straight over.
 ## Use it online
 
 Hosted on GitHub Pages at https://danielmdesigns.github.io/soknik/. Paste your OpenAI key into the box on the
-Make tool once per browser; it's saved only in that browser (never on the
+Camera tool once per browser; it's saved only in that browser (never on the
 site or in this repo), and generated images are kept in that browser too.
 
 ## Run it locally

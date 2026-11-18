@@ -488,7 +488,7 @@ async function copyPrompt() {
 }
 
 const TOOLS = {
-  generate: ["Make", "Generate a face or skull with hard, copier-ready light."],
+  generate: ["Camera", "Generate a face or skull with hard, copier-ready light."],
   copier: ["Copier", "Threshold and photocopy grit, then export vector or PNG."],
   press: ["Press", "Rough up type, logos and artwork like a worn printing press."],
 };
